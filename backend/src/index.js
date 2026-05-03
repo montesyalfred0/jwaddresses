@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.js';
 import territoryRoutes from './routes/territories.js';
 import addressRoutes from './routes/addresses.js';
+import { globalRateLimit, apiRateLimit } from './middlewares/rateLimitMiddleware.js';
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
+app.use(globalRateLimit);
+app.use('/api', apiRateLimit);
 app.use('/api/auth', authRoutes);
 app.use('/api/territories', territoryRoutes);
 app.use('/api/addresses', addressRoutes);

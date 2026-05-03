@@ -1,0 +1,18 @@
+CHECKLIST PARA DESPLIEGUE A PRODUCCIÓN
+- [ ] Cambiar JWT_SECRET por un secreto fuerte (mínimo 32 caracteres aleatorios)
+- [ ] Configurar CORS con whitelist de dominios
+- [ ] Implementar rate limiting (express-rate-limit)
+- [ ] Agregar validación de variables de entorno al iniciar
+- [ ] Configurar SSL para base de datos en producción
+- [ ] Crear archivos .env.production con URLs correctas
+- [ ] Configurar variable VITE_API_URL en frontend para producción
+- [ ] Ejecutar npm audit fix en ambos proyectos
+- [ ] Agregar middleware de validación para parámetros de ruta
+- [ ] Cambiar cookie sameSite a 'strict'
+- [ ] Implementar compresión gzip en backend
+- [ ] Configurar PM2 o similar para el backend
+- [ ] Configurar Nginx o similar como proxy inverso
+- [ ] Implementar logging estructurado
+- [ ] Configurar monitoreo y alertas
+- [ ] Escribir tests automatizados
+- [ ] Documentar API (Swagger/OpenAPI)  
