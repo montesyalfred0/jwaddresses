@@ -32,11 +32,18 @@ export default function TerritoryDetail() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.location_string) {
+      alert('GPS location is required. Please click "Get GPS" to capture your location.');
+      return;
+    }
     try {
       await addressAPI.createAddress({
         ...formData,
         neighborhood_id: parseInt(neighborhoodId),
-        age: formData.age ? parseInt(formData.age) : null,
+        age: formData.age && formData.age.trim() ? (() => {
+          const parsed = parseInt(formData.age, 10);
+          return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+        })() : undefined,
       });
       setFormData({ name: '', age: '', family: '', address: '', location_string: '' });
       setShowForm(false);
@@ -50,7 +57,6 @@ export default function TerritoryDetail() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          console.log('Got location:', position);
           const { latitude, longitude } = position.coords;
           const locationString = `https://www.google.com/maps?q=${latitude},${longitude}`;
           setFormData({ ...formData, location_string: locationString });
@@ -58,6 +64,11 @@ export default function TerritoryDetail() {
         (error) => {
           console.error('Error getting location:', error);
           alert('Could not get location. Please enter manually.');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } else {

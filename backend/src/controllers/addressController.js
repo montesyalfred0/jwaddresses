@@ -1,4 +1,6 @@
 import pool from '../config/database.js';
+import { z } from 'zod';
+import { addressSchema } from '../validations/schemas.js';
 
 export const getAddresses = async (req, res) => {
   const { neighborhoodId } = req.params;
@@ -16,9 +18,10 @@ export const getAddresses = async (req, res) => {
 };
 
 export const createAddress = async (req, res) => {
-  const { neighborhood_id, name, age, family, address, location_string } = req.body;
-
   try {
+    const validated = addressSchema.parse(req.body);
+    const { neighborhood_id, name, age, family, address, location_string } = validated;
+
     const result = await pool.query(
       `INSERT INTO addresses (neighborhood_id, name, age, family, address, location_string)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -28,6 +31,9 @@ export const createAddress = async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 };

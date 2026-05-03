@@ -11,5 +11,5 @@ export const addressSchema = z.object({
   age: z.number().int().positive().optional(),
   family: z.string().optional(),
   address: z.string().min(1),
-  location_string: z.string().optional(),
+  location_string: z.string().min(1, 'GPS location is required'),
 });
