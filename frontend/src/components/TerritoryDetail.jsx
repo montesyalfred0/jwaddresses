@@ -37,19 +37,20 @@ export default function TerritoryDetail() {
       return;
     }
     try {
-      await addressAPI.createAddress({
-        ...formData,
+      const addressData = {
+        name: formData.name,
+        address: formData.address,
+        location_string: formData.location_string,
         neighborhood_id: parseInt(neighborhoodId),
-        age: formData.age && formData.age.trim() ? (() => {
-          const parsed = parseInt(formData.age, 10);
-          return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
-        })() : undefined,
-      });
+        ...(formData.age && parseInt(formData.age) > 0 ? { age: parseInt(formData.age) } : {}),
+        ...(formData.family?.trim() ? { family: formData.family.trim() } : {}),
+      };
+      await addressAPI.createAddress(addressData);
       setFormData({ name: '', age: '', family: '', address: '', location_string: '' });
       setShowForm(false);
       fetchAddresses();
     } catch (error) {
-      console.error('Error creating address:', error);
+      console.error('Error creating address:', error.response?.data || error);
     }
   };
 
