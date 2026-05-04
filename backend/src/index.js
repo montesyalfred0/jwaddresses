@@ -7,8 +7,10 @@ import authRoutes from './routes/auth.js';
 import territoryRoutes from './routes/territories.js';
 import addressRoutes from './routes/addresses.js';
 import { globalRateLimit, apiRateLimit } from './middlewares/rateLimitMiddleware.js';
+import { validateEnv } from './config/env.js';
 
 dotenv.config();
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
