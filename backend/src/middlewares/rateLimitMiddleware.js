@@ -12,10 +12,7 @@ const createRateLimit = (options) => {
     store: new RedisStore({
       sendCommand: (...args) => redisClient.call(...args),
       prefix: options.prefix || 'rl:'
-    }),
-    keyGenerator: (req) => {
-      return req.ip;
-    }
+    })
   });
 };
 
