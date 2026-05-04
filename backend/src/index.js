@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.js';
 import territoryRoutes from './routes/territories.js';
@@ -11,6 +12,10 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Necesario para CORS con cookies
+}));
 
 const corsOptions = {
   origin: (origin, callback) => {
