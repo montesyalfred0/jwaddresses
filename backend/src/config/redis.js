@@ -13,8 +13,9 @@ const redisConfig = {
   }
 };
 
-// Habilitar TLS en producción para encriptar tráfico Redis
-if (process.env.NODE_ENV === 'production') {
+// Habilitar TLS solo si Redis NO es localhost (producción con Redis remoto)
+const isLocalRedis = ['localhost', '127.0.0.1', '::1'].includes(redisConfig.host);
+if (process.env.NODE_ENV === 'production' && !isLocalRedis) {
   redisConfig.tls = {};
 }
 
