@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { territoryAPI } from '../services/api';
-import { Map, ChevronRight, MapPin, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Map, ChevronRight, MapPin, AlertTriangle, RefreshCw, Search } from 'lucide-react';
 
 const territoryColors = [
   'bg-jw-50 text-jw-700 border-jw-200',
@@ -16,6 +16,17 @@ export default function TerritoryList() {
   const [territories, setTerritories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredTerritories = useMemo(() => {
+    if (!searchQuery.trim()) return territories;
+    const q = searchQuery.toLowerCase();
+    return territories.filter(t =>
+      t.neighborhoods?.some(nb =>
+        nb?.name?.toLowerCase().includes(q)
+      )
+    );
+  }, [territories, searchQuery]);
 
   useEffect(() => {
     const fetchTerritories = async () => {
@@ -78,8 +89,27 @@ export default function TerritoryList() {
         <p className="text-jwtextm text-sm ml-14">Seleccione un barrio para gestionar las direcciones</p>
       </div>
 
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4"
+          placeholder="Buscar barrio..."
+        />
+      </div>
+
+      {filteredTerritories.length === 0 && searchQuery.trim() && (
+        <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
+          <Search className="w-12 h-12 text-gray-300 mb-3" />
+          <p className="text-jwtextm font-medium">No se encontraron barrios</p>
+          <p className="text-gray-400 text-sm mt-1">Intente con otro término de búsqueda</p>
+        </div>
+      )}
+
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {territories.map((territory, idx) => {
+        {filteredTerritories.map((territory, idx) => {
           const neighborhoods = territory.neighborhoods?.filter(nb => nb?.id) || [];
           return (
             <div
