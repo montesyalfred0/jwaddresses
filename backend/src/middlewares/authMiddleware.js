@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 
+/** Middleware que verifica el JWT en la cookie y adjunta userId a la request */
 export const authMiddleware = (req, res, next) => {
   const token = req.cookies.jwt;
 

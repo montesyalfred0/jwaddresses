@@ -4,8 +4,10 @@ import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validate.js';
 import { addressSchema } from '../validations/schemas.js';
 
+/** Rutas de direcciones: listar y crear */
 const router = express.Router();
 
+/** Valida que el ID de barrio sea un número positivo */
 const validateNeighborhoodId = (req, res, next) => {
   const id = parseInt(req.params.neighborhoodId, 10);
   if (isNaN(id) || id <= 0) {

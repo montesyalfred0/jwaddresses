@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 
+/** Obtener todos los territorios con sus barrios anidados */
 export const getTerritories = async (req, res) => {
   try {
     const result = await pool.query(`

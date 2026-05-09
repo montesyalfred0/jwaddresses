@@ -2,6 +2,7 @@ import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import redisClient from '../config/redis.js';
 
+/** Crea un rate limiter con Redis como almacén */
 const createRateLimit = (options) => {
   return rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -16,18 +17,21 @@ const createRateLimit = (options) => {
   });
 };
 
+/** Límite global: 200 requests por IP cada 15 minutos */
 export const globalRateLimit = createRateLimit({
   max: 200,
   message: 'Too many requests from this IP, please try again later.',
   prefix: 'rl:global:'
 });
 
+/** Límite para rutas /api: 100 requests por IP cada 15 minutos */
 export const apiRateLimit = createRateLimit({
   max: 100,
   message: 'API rate limit exceeded. Please try again later.',
   prefix: 'rl:api:'
 });
 
+/** Límite para login: 5 intentos por IP cada 15 minutos */
 export const authRateLimit = createRateLimit({
   max: 5,
   message: 'Too many login attempts. Please try again in 15 minutes.',

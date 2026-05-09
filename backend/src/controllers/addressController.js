@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import { z } from 'zod';
 import { addressSchema } from '../validations/schemas.js';
 
+/** Obtener todas las direcciones de un barrio */
 export const getAddresses = async (req, res) => {
   const { neighborhoodId } = req.params;
 
@@ -18,6 +19,7 @@ export const getAddresses = async (req, res) => {
   }
 };
 
+/** Crear una nueva dirección */
 export const createAddress = async (req, res) => {
   try {
     const validated = addressSchema.parse(req.body);
