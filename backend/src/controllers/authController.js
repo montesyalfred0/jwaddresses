@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 
+/** Iniciar sesión: valida credenciales y devuelve JWT en cookie httpOnly */
 export const login = async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -43,6 +44,7 @@ export const login = async (req, res) => {
   }
 };
 
+/** Obtener usuario autenticado desde la cookie JWT */
 export const me = async (req, res) => {
   const token = req.cookies.jwt;
 
@@ -69,6 +71,7 @@ export const me = async (req, res) => {
   }
 };
 
+/** Cerrar sesión: elimina la cookie JWT */
 export const logout = (req, res) => {
   res.clearCookie('jwt', {
     httpOnly: true,

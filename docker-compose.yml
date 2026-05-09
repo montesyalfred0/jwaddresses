@@ -1,37 +1,40 @@
+# Volúmenes persistentes
 volumes:
-  postgres_data:
-  redis_data:
-  traefik_data:
+  postgres_data:      # Datos de PostgreSQL (no se pierde al reiniciar)
+  redis_data:         # Datos de Redis (sesiones, rate limit)
+  traefik_data:       # Certificados SSL de Let's Encrypt
 
 services:
+  # Proxy inverso con SSL automático (Let's Encrypt)
   traefik:
     image: traefik:latest
     container_name: jwaddresses-traefik
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80"       # HTTP (redirige a HTTPS)
+      - "443:443"     # HTTPS con SSL
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_data:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Para autodescubrir contenedores
+      - traefik_data:/letsencrypt   # Persistir certificados SSL
     command:
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--providers.docker=true"              # Auto-descubrimiento de servicios via labels
+      - "--entrypoints.web.address=:80"        # Puerto HTTP
+      - "--entrypoints.websecure.address=:443" # Puerto HTTPS
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"  # HTTP → HTTPS
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=montesyalfred0@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
 
+  # Base de datos
   postgres:
     image: postgres:16-alpine
     container_name: jwaddresses-db
     restart: unless-stopped
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data          # Datos persistentes
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql  # Schema inicial
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -42,6 +45,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Cache y rate limiting
   redis:
     image: redis:7-alpine
     container_name: jwaddresses-redis
@@ -57,6 +61,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # API REST (Express)
   backend:
     build: ./backend
     container_name: jwaddresses-api
@@ -66,8 +71,9 @@ services:
       NODE_ENV: production
       DB_HOST: postgres
       REDIS_HOST: redis
-      DB_SSL: "false"
-      REDIS_TLS: "false"
+      DB_SSL: "false"     # Sin SSL porque está en red interna Docker
+      REDIS_TLS: "false"  # Sin TLS porque está en red interna Docker
+    # Labels para que Traefik enrute /api → backend:3000
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`jwaddresses.yal99.com`) && PathPrefix(`/api`)"
@@ -80,17 +86,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 20s   # Esperar a que la DB esté lista
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
 
+  # Frontend SPA (React servido por nginx)
   frontend:
     build: ./frontend
     container_name: jwaddresses-web
     restart: unless-stopped
+    # Labels para que Traefik enrute todo lo que no sea /api → frontend:80
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`jwaddresses.yal99.com`)"

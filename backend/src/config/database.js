@@ -5,6 +5,7 @@ dotenv.config();
 
 const { Pool } = pg;
 
+/** Pool de conexiones a PostgreSQL con configuración SSL automática */
 const isLocalDB = process.env.DB_HOST === 'localhost' || process.env.DB_HOST === '127.0.0.1';
 
 const enableSSL = process.env.DB_SSL !== undefined
