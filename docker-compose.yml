@@ -1,4 +1,30 @@
+volumes:
+  postgres_data:
+  redis_data:
+  traefik_data:
+
 services:
+  traefik:
+    image: traefik:v3.3
+    container_name: jwaddresses-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/letsencrypt
+    command:
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=montesyalfred0@gmail.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+
   postgres:
     image: postgres:16-alpine
     container_name: jwaddresses-db
@@ -42,8 +68,13 @@ services:
       REDIS_HOST: redis
       DB_SSL: "false"
       REDIS_TLS: "false"
-    ports:
-      - "${BACKEND_PORT:-127.0.0.1:3000}:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`jwaddresses.yal99.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend.priority=10"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/', r => process.exit(0)).on('error', () => process.exit(1))\""]
       interval: 10s
@@ -60,11 +91,12 @@ services:
     build: ./frontend
     container_name: jwaddresses-web
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-127.0.0.1:3001}:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`jwaddresses.yal99.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.priority=5"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
     depends_on:
       - backend
-
-volumes:
-  postgres_data:
-  redis_data:

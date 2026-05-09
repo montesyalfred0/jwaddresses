@@ -19,9 +19,10 @@ build/
 # OS
 Thumbs.db
 
-# Environment files at root level
+# Environment files
 .env
 .env.*
+!.env.example
 
 # Temp files
 *.tmp
