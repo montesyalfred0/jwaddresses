@@ -4,35 +4,18 @@ volumes:
   traefik_data:
 
 services:
-  docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:latest
-    container_name: jwaddresses-docker-proxy
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      CONTAINERS: 1
-      NETWORKS: 1
-      SERVICES: 1
-      TASKS: 1
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:2375/version"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-
   traefik:
-    image: traefik:v3.3
+    image: traefik:latest
     container_name: jwaddresses-traefik
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_data:/letsencrypt
     command:
       - "--providers.docker=true"
-      - "--providers.docker.endpoint=tcp://docker-socket-proxy:2375"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
