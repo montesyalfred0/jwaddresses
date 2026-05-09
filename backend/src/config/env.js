@@ -22,6 +22,10 @@ const envSchema = z.object({
   REDIS_HOST: z.string().optional(),
   REDIS_PORT: z.string().optional(),
   REDIS_PASSWORD: z.string().optional(),
+
+  // Docker / SSL overrides
+  DB_SSL: z.string().optional(),
+  REDIS_TLS: z.string().optional(),
 });
 
 export const validateEnv = () => {

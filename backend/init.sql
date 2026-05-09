@@ -1,0 +1,29 @@
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS territories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS neighborhoods (
+    id SERIAL PRIMARY KEY,
+    territory_id INTEGER REFERENCES territories(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS addresses (
+    id SERIAL PRIMARY KEY,
+    neighborhood_id INTEGER REFERENCES neighborhoods(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    age INTEGER,
+    family VARCHAR(200),
+    address TEXT NOT NULL,
+    location_string TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -13,9 +13,13 @@ const redisConfig = {
   }
 };
 
-// Habilitar TLS solo si Redis NO es localhost (producción con Redis remoto)
 const isLocalRedis = ['localhost', '127.0.0.1', '::1'].includes(redisConfig.host);
-if (process.env.NODE_ENV === 'production' && !isLocalRedis) {
+
+const enableTLS = process.env.REDIS_TLS !== undefined
+  ? process.env.REDIS_TLS === 'true'
+  : process.env.NODE_ENV === 'production' && !isLocalRedis;
+
+if (enableTLS) {
   redisConfig.tls = {};
 }
 
