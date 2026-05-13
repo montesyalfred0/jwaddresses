@@ -48,6 +48,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/territories', territoryRoutes);
 app.use('/api/addresses', addressRoutes);
 
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
