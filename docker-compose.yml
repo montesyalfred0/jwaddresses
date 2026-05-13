@@ -46,8 +46,8 @@ services:
     env_file: ./backend/.env
     environment:
       NODE_ENV: production
-      DB_HOST: postgres
-      REDIS_HOST: redis
+      DB_HOST: jwaddresses-db
+      REDIS_HOST: jwaddresses-redis
       DB_SSL: "false"
       REDIS_TLS: "false"
     networks:
