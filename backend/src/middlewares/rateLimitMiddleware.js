@@ -10,6 +10,7 @@ const createRateLimit = (options) => {
     message: { error: options.message || 'Too many requests, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
+    skipOnError: true,
     store: new RedisStore({
       sendCommand: (...args) => redisClient.call(...args),
       prefix: options.prefix || 'rl:'
