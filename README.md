@@ -9,7 +9,7 @@ Frontend     React 18 + Vite + Tailwind CSS + React Router
 Backend      Node.js + Express + JWT + Zod
 Base datos   PostgreSQL 16
 Cache        Redis 7
-Proxy SSL    Traefik (SSL automático Let's Encrypt)
+Proxy SSL    Nginx + Let's Encrypt (Certbot) vía proxy externo
 Despliegue   Docker Compose
 ```
 
@@ -22,7 +22,7 @@ Despliegue   Docker Compose
                          └────────┬────────┘
                                   │
                           ┌───────┴───────┐
-                          │   Traefik     │
+                          │  proxy-nginx  │
                           │  (SSL + ACL)  │
                           └───┬───────┬───┘
                               │       │
@@ -54,7 +54,7 @@ Despliegue   Docker Compose
 
 ```bash
 # Clonar
-git clone https://github.com/montesyalfred0-spec/jwaddresses.git
+git clone https://github.com/montesyalfred0/jwaddresses.git
 cd jwaddresses
 
 # Instalar dependencias
@@ -67,11 +67,16 @@ npm run dev
 ### Producción (Docker)
 
 ```bash
-# 1. Clonar en el servidor
-git clone https://github.com/montesyalfred0-spec/jwaddresses.git
+# 1. Crear la red externa para el reverse proxy (una sola vez)
+docker network create proxy-network
+
+# 2. Configurar reverse proxy (nginx + Let's Encrypt) en la red proxy-network
+
+# 3. Clonar en el servidor
+git clone https://github.com/montesyalfred0/jwaddresses.git
 cd jwaddresses
 
-# 2. Crear .env (variables para docker-compose)
+# 4. Crear .env (variables para docker-compose)
 cat > .env << EOF
 DB_USER=jwapp
 DB_NAME=jwaddresses
@@ -79,15 +84,15 @@ DB_PASSWORD=tu_password_segura
 REDIS_PASSWORD=tu_redis_password
 EOF
 
-# 3. Crear backend/.env
+# 5. Crear backend/.env
 cp backend/.env.example backend/.env
 # Editar JWT_SECRET, DB_PASSWORD y demás variables
 
-# 4. Iniciar todo
+# 6. Iniciar todo
 docker compose up -d --build
 ```
 
-La app estará disponible en `https://tu-dominio.com` (Traefik obtiene SSL automáticamente).
+La app estará disponible en `https://tu-dominio.com` (requiere reverse proxy con SSL configurado).
 
 ### Crear primer usuario
 
