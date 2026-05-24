@@ -23,16 +23,14 @@ app.use(helmet({
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // En desarrollo, permitir todos los orígenes
     if (process.env.NODE_ENV === 'development') {
       return callback(null, true);
     }
-    // En producción, usar whitelist
     const corsOrigins = process.env.CORS_ORIGINS?.split(',').map(o => o.trim()) || [];
-    if (!origin && process.env.NODE_ENV === 'production') {
-      return callback(new Error('Not allowed by CORS'));
+    if (!origin) {
+      return callback(null, true);
     }
-    if (!origin || corsOrigins.includes(origin)) {
+    if (corsOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
