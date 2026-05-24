@@ -2,19 +2,28 @@ import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import redisClient from '../config/redis.js';
 
-/** Crea un rate limiter con Redis como almacén */
+const getStore = (prefix) => {
+  try {
+    return new RedisStore({
+      sendCommand: (...args) => redisClient.call(...args),
+      prefix: prefix || 'rl:',
+    });
+  } catch {
+    console.warn(`Rate limiting: Redis unavailable, using memory store for ${prefix}`);
+    return undefined;
+  }
+};
+
 const createRateLimit = (options) => {
+  const store = getStore(options.prefix);
+
   return rateLimit({
     windowMs: 15 * 60 * 1000,
     max: options.max,
     message: { error: options.message || 'Too many requests, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
-    skipOnError: true,
-    store: new RedisStore({
-      sendCommand: (...args) => redisClient.call(...args),
-      prefix: options.prefix || 'rl:'
-    })
+    ...(store ? { store } : {}),
   });
 };
 

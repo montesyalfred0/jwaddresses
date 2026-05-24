@@ -3,7 +3,7 @@ import { z } from 'zod';
 /** Schema de validación para login */
 export const loginSchema = z.object({
   username: z.string().min(3),
-  password: z.string().min(3),
+  password: z.string().min(8),
 });
 
 /** Schema de validación para crear/actualizar direcciones */

@@ -5,7 +5,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --production
 
-COPY create-user.js ./
 COPY src/ ./src/
 
 EXPOSE 3000

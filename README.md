@@ -5,7 +5,7 @@ Sistema de gestión de direcciones para territorios de predicación. Permite org
 ## Stack
 
 ```
-Frontend     React 18 + Vite + Tailwind CSS + React Router
+Frontend     React 18 + Vite + Tailwind CSS + React Router + Leaflet
 Backend      Node.js + Express + JWT + Zod
 Base datos   PostgreSQL 16
 Cache        Redis 7
@@ -57,10 +57,20 @@ Despliegue   Docker Compose
 git clone https://github.com/montesyalfred0/jwaddresses.git
 cd jwaddresses
 
-# Instalar dependencias
-cd backend && npm install && cd ../frontend && npm install && cd ..
+# Opción A: Todo con Docker (recomendado)
+# Primero crear .env raíz con las credenciales (o copiar de .env.example)
+cat > .env << EOF
+DB_USER=jwapp
+DB_NAME=jwaddresses
+DB_PASSWORD=mi_password_segura
+REDIS_PASSWORD=mi_redis_password
+EOF
 
-# Iniciar backend y frontend
+# Luego levantar todo
+docker compose -f docker-compose.local.yml up -d --build
+
+# Opción B: Solo backend + frontend con Node
+cd backend && npm install && cd ../frontend && npm install && cd ..
 npm run dev
 ```
 
@@ -97,7 +107,11 @@ La app estará disponible en `https://tu-dominio.com` (requiere reverse proxy co
 ### Crear primer usuario
 
 ```bash
-docker compose exec backend node create-user.js usuario contraseña "Nombre Completo"
+# 1. Generar el hash de la contraseña (requiere Node.js 24)
+node backend/create-user.js usuario contraseña "Nombre Completo"
+
+# 2. Copiar el SQL que imprime el script y ejecutarlo:
+docker compose exec postgres psql -U jwapp -d jwaddresses -c "INSERT INTO users (username, password, name) VALUES ('usuario', 'HASH_GENERADO', 'Nombre Completo');"
 ```
 
 ## Variables de entorno
@@ -158,7 +172,8 @@ docker compose exec backend node create-user.js usuario contraseña "Nombre Comp
 ```
 jwaddresses/
 ├── .env.example              # Variables de entorno para Docker
-├── docker-compose.yml        # Orquestación de servicios
+├── docker-compose.yml        # Orquestación de servicios (producción)
+├── docker-compose.local.yml  # Orquestación local (desarrollo)
 ├── backend/
 │   ├── src/
 │   │   ├── index.js          # Entry point Express
@@ -182,7 +197,7 @@ jwaddresses/
 │   │       └── schemas.js    # Schemas Zod
 │   ├── init.sql              # Esquema de base de datos
 │   ├── Dockerfile
-│   └── create-user.js        # Script para crear usuarios
+│   └── create-user.js        # Script local para crear usuarios (no incluido en build Docker)
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx           # Router principal
@@ -191,12 +206,14 @@ jwaddresses/
 │   │   │   ├── Login.jsx
 │   │   │   ├── Layout.jsx
 │   │   │   ├── TerritoryList.jsx
-│   │   │   └── TerritoryDetail.jsx
+│   │   │   ├── TerritoryDetail.jsx
+│   │   │   └── MapPicker.jsx # Selector de ubicación en mapa (Leaflet)
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx
 │   │   └── services/
 │   │       └── api.js        # Axios + interceptors
 │   ├── nginx.conf
+│   ├── nginx.local.conf
 │   └── Dockerfile
 └── deploy/
     ├── setup-vps.sh          # Script de aprovisionamiento VPS
@@ -208,14 +225,18 @@ jwaddresses/
 - Autenticación con JWT en cookie httpOnly (no accesible desde JS)
 - SameSite según entorno (`none` en producción, `lax` en desarrollo)
 - Cookie segura solo en producción (HTTPS)
-- Helmet para headers de seguridad
-- CORS whitelist configurable
+- Helmet para headers de seguridad en API
+- Nginx con headers de seguridad (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy)
+- CORS whitelist configurable (requiere `Origin` en producción)
 - Rate limiting con Redis (200 global / 100 API / 5 login por IP cada 15 min)
-- Validación de datos con Zod en backend y frontend
+- Fallback a memoria si Redis no está disponible
+- Validación de datos con Zod en backend y frontend (errores ocultos en producción)
 - Validación de variables de entorno al iniciar
-- Contraseñas hasheadas con bcrypt
+- Contraseñas hasheadas con bcrypt (mínimo 8 caracteres)
 - SSL/TLS automático con Let's Encrypt vía Traefik
 - Redis y PostgreSQL con autenticación
+- Mapa con OpenStreetMap y Leaflet (sin API key, sin tracking externo)
+- Express actualizado a v4.21+ (CVE-2024-29041 parcheado)
 
 ## Licencia
 

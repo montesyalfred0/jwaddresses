@@ -6,6 +6,9 @@ export const validate = (schema) => (req, res, next) => {
     schema.parse(req.body);
     next();
   } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(400).json({ error: 'Validation failed' });
+    }
     return res.status(400).json({ error: error.errors });
   }
 };

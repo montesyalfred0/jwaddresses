@@ -6,6 +6,7 @@ import {
   ExternalLink, Plus, ArrowLeft, AlertTriangle, CheckCircle,
   Clock,
 } from 'lucide-react';
+import MapPicker from './MapPicker';
 
 export default function TerritoryDetail() {
   const { neighborhoodId } = useParams();
@@ -15,6 +16,7 @@ export default function TerritoryDetail() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -53,7 +55,7 @@ export default function TerritoryDetail() {
     e.preventDefault();
     setCreateError(null);
     if (!formData.location_string) {
-      setCreateError('Se requiere ubicación GPS. Haga clic en "Obtener GPS" para capturar su ubicación.');
+      setCreateError('Se requiere ubicación. Haga clic en "Seleccionar en mapa" para elegir la ubicación.');
       return;
     }
     setSaving(true);
@@ -84,23 +86,10 @@ export default function TerritoryDetail() {
     }
   };
 
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const locationString = `https://www.google.com/maps?q=${latitude},${longitude}`;
-          setFormData({ ...formData, location_string: locationString });
-          setCreateError(null);
-        },
-        (error) => {
-          setCreateError('No se pudo obtener la ubicación. Ingrese el enlace de Google Maps manualmente.');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      setCreateError('La geolocalización no es compatible con este navegador.');
-    }
+  const handleLocationConfirm = (locationUrl) => {
+    setFormData({ ...formData, location_string: locationUrl });
+    setShowMapPicker(false);
+    setCreateError(null);
   };
 
   if (loading) {
@@ -237,11 +226,11 @@ export default function TerritoryDetail() {
               />
               <button
                 type="button"
-                onClick={getLocation}
+                onClick={() => setShowMapPicker(true)}
                 className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium whitespace-nowrap"
               >
                 <Navigation className="w-4 h-4" />
-                Obtener GPS
+                Seleccionar en mapa
               </button>
             </div>
           </div>
@@ -326,6 +315,13 @@ export default function TerritoryDetail() {
           </div>
         ))}
       </div>
+
+      <MapPicker
+        isOpen={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onConfirm={handleLocationConfirm}
+        initialLocation={formData.location_string}
+      />
     </div>
   );
 }
