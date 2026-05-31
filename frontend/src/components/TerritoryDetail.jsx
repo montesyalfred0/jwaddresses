@@ -216,7 +216,7 @@ export default function TerritoryDetail() {
 
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ubicación</label>
-            <div className="flex gap-2">
+            <div className="flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={formData.location_string}
@@ -227,7 +227,7 @@ export default function TerritoryDetail() {
               <button
                 type="button"
                 onClick={() => setShowMapPicker(true)}
-                className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium whitespace-nowrap"
+                className="flex items-center justify-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium whitespace-nowrap"
               >
                 <Navigation className="w-4 h-4" />
                 Seleccionar en mapa

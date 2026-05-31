@@ -147,7 +147,7 @@ export default function MapPicker({ isOpen, onClose, onConfirm, initialLocation 
           <button
             type="button"
             onClick={handleUseDeviceLocation}
-            className="absolute top-3 right-3 z-[1000] bg-white text-jw-700 p-2.5 rounded-lg shadow-md hover:bg-jw-50 transition-colors"
+            className="absolute top-3 left-3 z-[1000] bg-white text-jw-700 p-3 rounded-lg shadow-md hover:bg-jw-50 transition-colors"
             title="Usar mi ubicación"
           >
             <Crosshair className="w-5 h-5" />
