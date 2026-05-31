@@ -66,6 +66,18 @@ export default function MapPicker({ isOpen, onClose, onConfirm, initialLocation 
       const pos = parseLatLng(initialLocation) || DEFAULT_CENTER;
       setPosition(pos);
       setMapCenter({ ...pos });
+
+      if (!initialLocation && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            setPosition({ lat: latitude, lng: longitude });
+            setMapCenter({ lat: latitude, lng: longitude });
+          },
+          () => {},
+          { enableHighAccuracy: false, timeout: 5000 }
+        );
+      }
     }
   }, [isOpen, initialLocation]);
 
