@@ -4,7 +4,7 @@ import { addressAPI } from '../services/api';
 import {
   MapPin, User, Users, Home, Navigation, Save,
   ExternalLink, Plus, ArrowLeft, AlertTriangle, CheckCircle,
-  Clock,
+  Clock, Pencil, Trash2,
 } from 'lucide-react';
 import MapPicker from './MapPicker';
 
@@ -17,7 +17,11 @@ export default function TerritoryDetail() {
   const [fetchError, setFetchError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [createError, setCreateError] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -38,6 +42,36 @@ export default function TerritoryDetail() {
       return () => clearTimeout(timer);
     }
   }, [successMsg]);
+
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
+
+  useEffect(() => {
+    if (showForm) {
+      const timer = setTimeout(() => {
+        document.getElementById('address-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [showForm]);
+
+  useEffect(() => {
+    if (editingAddress) {
+      setFormData({
+        name: editingAddress.name || '',
+        age: editingAddress.age?.toString() || '',
+        family: editingAddress.family || '',
+        address: editingAddress.address || '',
+        location_string: editingAddress.location_string || '',
+      });
+      setShowForm(true);
+      setCreateError(null);
+    }
+  }, [editingAddress]);
 
   const fetchAddresses = async () => {
     try {
@@ -68,12 +102,18 @@ export default function TerritoryDetail() {
         ...(formData.age && parseInt(formData.age) > 0 ? { age: parseInt(formData.age) } : {}),
         ...(formData.family?.trim() ? { family: formData.family.trim() } : {}),
       };
-      await addressAPI.createAddress(addressData);
+      if (editingAddress) {
+        await addressAPI.updateAddress(editingAddress.id, addressData);
+        setSuccessMsg('Dirección actualizada exitosamente');
+      } else {
+        await addressAPI.createAddress(addressData);
+        setSuccessMsg('Dirección guardada exitosamente');
+      }
       setFormData({ name: '', age: '', family: '', address: '', location_string: '' });
       setShowForm(false);
+      setEditingAddress(null);
       setCreateError(null);
       setSaving(false);
-      setSuccessMsg('Dirección guardada exitosamente');
       fetchAddresses();
     } catch (error) {
       setSaving(false);
@@ -84,6 +124,27 @@ export default function TerritoryDetail() {
         setCreateError(errData?.error || 'Failed to save address');
       }
     }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      setDeleting(true);
+      await addressAPI.deleteAddress(id);
+      setDeleting(false);
+      setDeletingId(null);
+      setSuccessMsg('Dirección eliminada exitosamente');
+      fetchAddresses();
+    } catch (error) {
+      setDeleting(false);
+      setErrorMsg(error.response?.data?.error || 'Error al eliminar la dirección');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAddress(null);
+    setFormData({ name: '', age: '', family: '', address: '', location_string: '' });
+    setShowForm(false);
+    setCreateError(null);
   };
 
   const handleLocationConfirm = (locationUrl) => {
@@ -124,6 +185,12 @@ export default function TerritoryDetail() {
           <span className="text-sm font-medium">{successMsg}</span>
         </div>
       )}
+      {errorMsg && (
+        <div className="fixed top-32 right-4 z-50 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-up">
+          <AlertTriangle className="w-4 h-4" />
+          <span className="text-sm font-medium">{errorMsg}</span>
+        </div>
+      )}
 
       <Link
         to="/territories"
@@ -144,7 +211,14 @@ export default function TerritoryDetail() {
           </p>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setCreateError(null); }}
+          onClick={() => {
+            if (editingAddress) {
+              handleCancelEdit();
+            } else {
+              setShowForm(!showForm);
+              setCreateError(null);
+            }
+          }}
           className="flex items-center gap-2 bg-jw-700 text-white px-5 py-2.5 rounded-lg hover:bg-jw-800 transition-colors text-sm font-medium shadow-sm"
         >
           <Plus className="w-4 h-4" />
@@ -154,13 +228,25 @@ export default function TerritoryDetail() {
 
       {showForm && (
         <form
+          id="address-form"
           onSubmit={handleSubmit}
           className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 animate-slide-up"
         >
           <h2 className="text-lg font-semibold text-jwtext mb-5 flex items-center gap-2">
             <Home className="w-4 h-4 text-jw-700" />
-            Nueva Dirección
+            {editingAddress ? (
+              <span>Editando: <span className="text-jw-700">{editingAddress.name}</span></span>
+            ) : 'Nueva Dirección'}
           </h2>
+          {editingAddress && (
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="text-sm text-jw-700 hover:text-jw-800 underline mb-3"
+            >
+              Cancelar edición
+            </button>
+          )}
 
           {createError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-5 animate-fade-in">
@@ -251,7 +337,7 @@ export default function TerritoryDetail() {
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                Guardar Dirección
+                {editingAddress ? 'Actualizar Dirección' : 'Guardar Dirección'}
               </>
             )}
           </button>
@@ -300,17 +386,65 @@ export default function TerritoryDetail() {
                 </div>
               </div>
 
-              {addr.location_string && (
-                <a
-                  href={addr.location_string}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 bg-jw-50 text-jw-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-jw-100 transition-colors flex-shrink-0"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Maps
-                </a>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {deletingId === addr.id ? (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+                    {deleting ? (
+                      <div className="flex items-center gap-1.5">
+                        <svg className="animate-spin w-3.5 h-3.5 text-red-700" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        <span className="text-xs font-medium text-red-700">Eliminando...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-xs font-medium text-red-700 whitespace-nowrap">¿Eliminar?</span>
+                        <button
+                          onClick={() => handleDelete(addr.id)}
+                          className="text-xs font-semibold text-red-700 hover:text-red-900 transition-colors"
+                        >
+                          Sí
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(null)}
+                          className="text-xs font-semibold text-jwtextm hover:text-jwtext transition-colors"
+                        >
+                          No
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {addr.location_string && (
+                      <a
+                        href={addr.location_string}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 bg-jw-50 text-jw-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-jw-100 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Maps
+                      </a>
+                    )}
+                    <button
+                      onClick={() => { setEditingAddress(addr); setShowForm(true); }}
+                      className="p-1.5 text-gray-400 hover:text-jw-700 hover:bg-jw-50 rounded-lg transition-colors"
+                      title="Editar dirección"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeletingId(addr.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar dirección"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}

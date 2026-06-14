@@ -31,6 +31,8 @@ export const territoryAPI = {
 export const addressAPI = {
   getAddresses: (neighborhoodId) => api.get(`/addresses/neighborhood/${neighborhoodId}`),
   createAddress: (data) => api.post('/addresses', data),
+  updateAddress: (id, data) => api.put(`/addresses/${id}`, data),
+  deleteAddress: (id) => api.delete(`/addresses/${id}`),
 };
 
 export default api;
