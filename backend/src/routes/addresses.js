@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAddresses, createAddress, updateAddress, deleteAddress } from '../controllers/addressController.js';
-import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validate.js';
 import { addressSchema } from '../validations/schemas.js';
 
@@ -26,8 +26,8 @@ const validateAddressId = (req, res, next) => {
 };
 
 router.get('/neighborhood/:neighborhoodId', authMiddleware, validateNeighborhoodId, getAddresses);
-router.post('/', authMiddleware, validate(addressSchema), createAddress);
-router.put('/:id', authMiddleware, validateAddressId, validate(addressSchema), updateAddress);
-router.delete('/:id', authMiddleware, validateAddressId, deleteAddress);
+router.post('/', authMiddleware, adminMiddleware, validate(addressSchema), createAddress);
+router.put('/:id', authMiddleware, adminMiddleware, validateAddressId, validate(addressSchema), updateAddress);
+router.delete('/:id', authMiddleware, adminMiddleware, validateAddressId, deleteAddress);
 
 export default router;

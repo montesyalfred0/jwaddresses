@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { addressAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   MapPin, User, Users, Home, Navigation, Save,
   ExternalLink, Plus, ArrowLeft, AlertTriangle, CheckCircle,
@@ -11,6 +12,8 @@ import MapPicker from './MapPicker';
 export default function TerritoryDetail() {
   const { neighborhoodId } = useParams();
   const { state } = useLocation();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const neighborhoodName = state?.neighborhoodName || 'Direcciones';
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,20 +213,22 @@ export default function TerritoryDetail() {
             {addresses.length} {addresses.length === 1 ? 'dirección registrada' : 'direcciones registradas'}
           </p>
         </div>
-        <button
-          onClick={() => {
-            if (editingAddress) {
-              handleCancelEdit();
-            } else {
-              setShowForm(!showForm);
-              setCreateError(null);
-            }
-          }}
-          className="flex items-center gap-2 bg-jw-700 text-white px-5 py-2.5 rounded-lg hover:bg-jw-800 transition-colors text-sm font-medium shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {showForm ? 'Cancelar' : 'Agregar Dirección'}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => {
+              if (editingAddress) {
+                handleCancelEdit();
+              } else {
+                setShowForm(!showForm);
+                setCreateError(null);
+              }
+            }}
+            className="flex items-center gap-2 bg-jw-700 text-white px-5 py-2.5 rounded-lg hover:bg-jw-800 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {showForm ? 'Cancelar' : 'Agregar Dirección'}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -387,7 +392,7 @@ export default function TerritoryDetail() {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                {deletingId === addr.id ? (
+                {isAdmin && deletingId === addr.id ? (
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
                     {deleting ? (
                       <div className="flex items-center gap-1.5">
@@ -428,20 +433,24 @@ export default function TerritoryDetail() {
                         Maps
                       </a>
                     )}
-                    <button
-                      onClick={() => { setEditingAddress(addr); setShowForm(true); }}
-                      className="p-1.5 text-gray-400 hover:text-jw-700 hover:bg-jw-50 rounded-lg transition-colors"
-                      title="Editar dirección"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeletingId(addr.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Eliminar dirección"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => { setEditingAddress(addr); setShowForm(true); }}
+                          className="p-1.5 text-gray-400 hover:text-jw-700 hover:bg-jw-50 rounded-lg transition-colors"
+                          title="Editar dirección"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(addr.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar dirección"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

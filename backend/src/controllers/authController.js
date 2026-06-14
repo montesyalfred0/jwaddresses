@@ -23,7 +23,7 @@ export const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -36,7 +36,7 @@ export const login = async (req, res) => {
     });
 
     res.json({
-      user: { id: user.id, username: user.username, name: user.name }
+      user: { id: user.id, username: user.username, name: user.name, role: user.role }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -48,7 +48,7 @@ export const login = async (req, res) => {
 export const me = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, name FROM users WHERE id = $1',
+      'SELECT id, username, name, role FROM users WHERE id = $1',
       [req.userId]
     );
 
