@@ -9,9 +9,27 @@ import {
   TableRow,
   TableCell,
   WidthType,
+  BorderStyle,
+  AlignmentType,
+  TableLayoutType,
+  Footer,
+  PageNumber,
 } from 'docx';
 
 const DOCX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+/** Paleta de marca (coherente con la app) */
+const C = {
+  primary: '304973',   // jw-700
+  dark: '18253F',      // jw-900
+  mid: '243759',       // jw-800
+  accentLine: 'B3C7E3',// jw-200
+  zebra: 'F0F4F9',     // jw-50
+  muted: '555555',
+  faint: '8A8A8A',
+};
+
+const FONT = 'Segoe UI';
 
 /** Sanitiza un texto para usarlo como nombre de archivo y evitar inyección de cabeceras HTTP */
 const safeFilenamePart = (value) =>
@@ -45,7 +63,6 @@ const fetchGroupedData = async (territoryId = null) => {
             n.name AS neighborhood_name,
             a.name AS person_name,
             a.family,
-            a.age,
             a.address
      FROM territories t
      LEFT JOIN neighborhoods n ON n.territory_id = t.id
@@ -69,7 +86,6 @@ const fetchGroupedData = async (territoryId = null) => {
       territory.neighborhoods.get(row.neighborhood_id).addresses.push({
         name: row.person_name,
         family: row.family,
-        age: row.age,
         address: row.address,
       });
     }
@@ -78,109 +94,213 @@ const fetchGroupedData = async (territoryId = null) => {
   return [...territories.values()];
 };
 
+/** Borde fino azul suave para todas las líneas de la tabla */
+const softBorder = { style: BorderStyle.SINGLE, size: 4, color: C.accentLine };
+const tableBorders = {
+  top: softBorder,
+  bottom: softBorder,
+  left: softBorder,
+  right: softBorder,
+  insideHorizontal: softBorder,
+  insideVertical: softBorder,
+};
+
+const cellMargins = { top: 110, bottom: 110, left: 150, right: 150 };
+
 const cellParagraph = (text, options = {}) =>
-  new Paragraph({ children: [new TextRun({ text: String(text ?? ''), ...options })] });
+  new Paragraph({
+    spacing: { before: 0, after: 0 },
+    children: [new TextRun({ text: String(text ?? ''), size: 21, font: FONT, ...options })],
+  });
 
-/** Construye una tabla de direcciones con fila de encabezado */
-const buildAddressTable = (addresses) => {
-  const columns = [
-    { header: 'Nombre', width: 22 },
-    { header: 'Familia', width: 18 },
-    { header: 'Edad', width: 8 },
-    { header: 'Dirección', width: 52 },
-  ];
-
-  const headerRow = new TableRow({
+/** Encabezado de tabla: fondo azul de marca, texto blanco en negrita */
+const buildHeaderRow = (columns) =>
+  new TableRow({
     tableHeader: true,
+    cantSplit: true,
     children: columns.map(
       (col) =>
         new TableCell({
           width: { size: col.width, type: WidthType.PERCENTAGE },
-          shading: { fill: 'E8E8E8' },
-          children: [cellParagraph(col.header, { bold: true })],
+          shading: { fill: C.primary, type: 'clear' },
+          margins: cellMargins,
+          children: [cellParagraph(col.header, { bold: true, color: 'FFFFFF' })],
         })
     ),
   });
 
-  const bodyRows = addresses.map((addr) =>
+/** Filas de direcciones con franjas alternadas (cebra) */
+const buildBodyRows = (addresses, columns) =>
+  addresses.map((addr, i) =>
     new TableRow({
-      children: [addr.name, addr.family, addr.age != null ? String(addr.age) : '', addr.address].map(
-        (value, i) =>
-          new TableCell({
-            width: { size: columns[i].width, type: WidthType.PERCENTAGE },
-            children: [cellParagraph(value)],
-          })
-      ),
+      cantSplit: true,
+      children: columns.map((col, ci) => {
+        const value =
+          ci === 0 ? addr.name : ci === 1 ? addr.family : addr.address;
+        return new TableCell({
+          width: { size: col.width, type: WidthType.PERCENTAGE },
+          shading: { fill: i % 2 === 1 ? C.zebra : 'FFFFFF', type: 'clear' },
+          margins: cellMargins,
+          children: [
+            cellParagraph(value, ci === 0 ? { bold: true } : {}),
+          ],
+        });
+      }),
     })
   );
 
+/** Tabla de direcciones del barrio: Nombre · Familia · Dirección */
+const buildAddressTable = (addresses) => {
+  const columns = [
+    { header: 'Nombre', width: 27 },
+    { header: 'Familia', width: 26 },
+    { header: 'Dirección', width: 47 },
+  ];
+
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [headerRow, ...bodyRows],
+    layout: TableLayoutType.FIXED,
+    borders: tableBorders,
+    rows: [buildHeaderRow(columns), ...buildBodyRows(addresses, columns)],
   });
 };
 
-/** Construye el documento Word completo a partir de los datos agrupados */
-const buildDocument = (grouped, docTitle) => {
-  const children = [
+/** Título del documento con línea de acento y resumen */
+const buildDocHeader = (docTitle, grouped) => {
+  const totalAddresses = grouped.reduce(
+    (total, t) => total + [...t.neighborhoods.values()].reduce((sum, nb) => sum + nb.addresses.length, 0),
+    0
+  );
+  return [
     new Paragraph({
-      heading: HeadingLevel.TITLE,
-      children: [new TextRun(docTitle)],
+      spacing: { after: 60 },
+      children: [new TextRun({ text: docTitle, bold: true, size: 52, color: C.dark, font: FONT })],
     }),
     new Paragraph({
-      spacing: { after: 400 },
+      spacing: { after: 320 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: C.primary, space: 10 } },
       children: [
         new TextRun({
-          text: `Generado el ${new Date().toLocaleString('es-CO')} · ${grouped.reduce(
-            (total, t) => total + [...t.neighborhoods.values()].reduce((sum, nb) => sum + nb.addresses.length, 0),
-            0
-          )} direcciones`,
-          italics: true,
+          text: `Generado el ${new Date().toLocaleDateString('es-CO', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}  ·  ${totalAddresses} direcciones en ${grouped.length} ${grouped.length === 1 ? 'territorio' : 'territorios'}`,
           size: 20,
+          color: C.muted,
+          font: FONT,
         }),
       ],
     }),
   ];
+};
 
-  for (const territory of grouped) {
-    children.push(
-      new Paragraph({
-        heading: HeadingLevel.HEADING_1,
-        pageBreakBefore: grouped[0] && grouped.indexOf(territory) > 0,
-        children: [new TextRun(territory.name)],
-      })
-    );
+/** Encabezado de territorio con contador y línea divisoria */
+const buildTerritoryHeading = (territory, isFirst) => {
+  const count = [...territory.neighborhoods.values()].reduce((sum, nb) => sum + nb.addresses.length, 0);
+  return new Paragraph({
+    pageBreakBefore: !isFirst,
+    keepNext: true,
+    spacing: { before: 0, after: 60 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.accentLine, space: 6 } },
+    children: [
+      new TextRun({ text: territory.name, bold: true, size: 38, color: C.primary, font: FONT }),
+      new TextRun({
+        text: `   ${count} ${count === 1 ? 'dirección' : 'direcciones'}`,
+        size: 20,
+        color: C.muted,
+        font: FONT,
+      }),
+    ],
+  });
+};
+
+/** Encabezado de barrio con contador entre paréntesis */
+const buildNeighborhoodHeading = (neighborhood) =>
+  new Paragraph({
+    keepNext: true,
+    spacing: { before: 300, after: 120 },
+    children: [
+      new TextRun({ text: neighborhood.name, bold: true, size: 27, color: C.mid, font: FONT }),
+      new TextRun({
+        text: `  (${neighborhood.addresses.length})`,
+        size: 19,
+        color: C.faint,
+        font: FONT,
+      }),
+    ],
+  });
+
+/** Construye el documento Word completo a partir de los datos agrupados */
+const buildDocument = (grouped, docTitle) => {
+  const children = [...buildDocHeader(docTitle, grouped)];
+
+  grouped.forEach((territory, tIdx) => {
+    children.push(buildTerritoryHeading(territory, tIdx === 0));
 
     if (territory.neighborhoods.size === 0) {
-      children.push(new Paragraph({ children: [new TextRun({ text: 'Sin barrios registrados.', italics: true })] }));
-      continue;
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: 'Sin barrios registrados.', italics: true, color: C.muted, font: FONT })],
+        })
+      );
+      return;
     }
 
     for (const neighborhood of territory.neighborhoods.values()) {
-      children.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 240 },
-          children: [new TextRun(neighborhood.name)],
-        })
-      );
+      children.push(buildNeighborhoodHeading(neighborhood));
 
       if (neighborhood.addresses.length === 0) {
         children.push(
-          new Paragraph({ children: [new TextRun({ text: 'Sin direcciones registradas.', italics: true })] })
+          new Paragraph({
+            children: [new TextRun({ text: 'Sin direcciones registradas.', italics: true, color: C.muted, font: FONT })],
+          })
         );
         continue;
       }
 
       children.push(buildAddressTable(neighborhood.addresses));
-      children.push(new Paragraph({ text: '' }));
+      children.push(new Paragraph({ spacing: { after: 60 }, children: [] }));
     }
-  }
+  });
 
   return new Document({
     creator: 'jwaddresses',
     title: docTitle,
-    sections: [{ properties: {}, children }],
+    styles: {
+      default: {
+        document: { run: { font: FONT, size: 21 }, paragraph: { spacing: { after: 0 } } },
+        heading1: { run: { font: FONT } },
+        heading2: { run: { font: FONT } },
+      },
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: { top: 1100, bottom: 1100, left: 1150, right: 1150 },
+          },
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.accentLine, space: 4 } },
+                children: [
+                  new TextRun({ text: 'Página ', size: 18, color: C.muted, font: FONT }),
+                  new TextRun({ children: [PageNumber.CURRENT], size: 18, color: C.muted, font: FONT }),
+                  new TextRun({ text: ' de ', size: 18, color: C.muted, font: FONT }),
+                  new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 18, color: C.muted, font: FONT }),
+                ],
+              }),
+            ],
+          }),
+        },
+        children,
+      },
+    ],
   });
 };
 
