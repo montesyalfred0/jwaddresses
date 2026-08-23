@@ -24,6 +24,10 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Database dumps (contienen datos personales - nunca subir al repo)
+*.dump
+*.sql.gz
+
 # Local Docker config
 docker-compose.local.yml
 frontend/nginx.local.conf
