@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MapPin, LogOut, ChevronRight, Home } from 'lucide-react';
+import { InstallButton, IosInstallBanner } from './InstallPrompt';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -27,15 +28,20 @@ export default function Layout() {
             <MapPin className="w-5 h-5" />
             <span className="text-lg font-semibold tracking-tight">JW Addresses</span>
           </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 bg-jw-800 hover:bg-jw-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Salir</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <InstallButton />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 bg-jw-800 hover:bg-jw-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Salir</span>
+            </button>
+          </div>
         </div>
       </nav>
+
+      <IosInstallBanner />
 
       {breadcrumbs.length > 0 && (
         <div className="bg-white border-b border-gray-200">
