@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { addressAPI } from '../services/api';
+import { addressAPI, exportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
   MapPin, User, Users, Home, Navigation, Save,
   ExternalLink, Plus, ArrowLeft, AlertTriangle, CheckCircle,
-  Clock, Pencil, Trash2,
+  Clock, Pencil, Trash2, Download,
 } from 'lucide-react';
 import MapPicker from './MapPicker';
 
@@ -27,6 +27,7 @@ export default function TerritoryDetail() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -143,6 +144,18 @@ export default function TerritoryDetail() {
     }
   };
 
+  const handleDownloadTerritory = async () => {
+    setDownloading(true);
+    try {
+      await exportAPI.downloadTerritoryFromNeighborhood(neighborhoodId);
+      setSuccessMsg('Documento generado exitosamente');
+    } catch (error) {
+      setErrorMsg(error.message || 'Error al generar el documento');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleCancelEdit = () => {
     setEditingAddress(null);
     setFormData({ name: '', age: '', family: '', address: '', location_string: '' });
@@ -214,20 +227,43 @@ export default function TerritoryDetail() {
           </p>
         </div>
         {isAdmin && (
-          <button
-            onClick={() => {
-              if (editingAddress) {
-                handleCancelEdit();
-              } else {
-                setShowForm(!showForm);
-                setCreateError(null);
-              }
-            }}
-            className="flex items-center gap-2 bg-jw-700 text-white px-5 py-2.5 rounded-lg hover:bg-jw-800 transition-colors text-sm font-medium shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            {showForm ? 'Cancelar' : 'Agregar Dirección'}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={handleDownloadTerritory}
+              disabled={downloading}
+              className="flex items-center gap-2 border border-jw-700 text-jw-700 px-4 py-2.5 rounded-lg hover:bg-jw-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium whitespace-nowrap"
+              title="Descargar todas las direcciones de este territorio en Word"
+            >
+              {downloading ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Descargar (.docx)
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                if (editingAddress) {
+                  handleCancelEdit();
+                } else {
+                  setShowForm(!showForm);
+                  setCreateError(null);
+                }
+              }}
+              className="flex items-center gap-2 bg-jw-700 text-white px-5 py-2.5 rounded-lg hover:bg-jw-800 transition-colors text-sm font-medium shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              {showForm ? 'Cancelar' : 'Agregar Dirección'}
+            </button>
+          </div>
         )}
       </div>
 

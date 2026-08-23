@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { territoryAPI } from '../services/api';
-import { Map, ChevronRight, MapPin, AlertTriangle, RefreshCw } from 'lucide-react';
+import { territoryAPI, exportAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { Map, ChevronRight, MapPin, AlertTriangle, RefreshCw, Download } from 'lucide-react';
 
 const territoryColors = [
   'bg-jw-50 text-jw-700 border-jw-200',
@@ -13,10 +14,33 @@ const territoryColors = [
 ];
 
 export default function TerritoryList() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [territories, setTerritories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+
+  useEffect(() => {
+    if (exportError) {
+      const timer = setTimeout(() => setExportError(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [exportError]);
+
+  const handleExportAll = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await exportAPI.downloadAllTerritories();
+    } catch (err) {
+      setExportError(err.message || 'Error al generar el documento');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const filteredTerritories = useMemo(() => {
     if (!searchQuery.trim()) return territories;
@@ -79,12 +103,43 @@ export default function TerritoryList() {
 
   return (
     <div>
+      {exportError && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-fade-in">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          {exportError}
+        </div>
+      )}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-jw-700 rounded-lg">
-            <Map className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-jw-700 rounded-lg">
+              <Map className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-jwtext">Territorios</h1>
           </div>
-          <h1 className="text-2xl font-bold text-jwtext">Territorios</h1>
+          {isAdmin && (
+            <button
+              onClick={handleExportAll}
+              disabled={exporting}
+              className="flex items-center gap-2 bg-jw-700 text-white px-4 py-2.5 rounded-lg hover:bg-jw-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm whitespace-nowrap"
+              title="Descargar todas las direcciones agrupadas por territorio"
+            >
+              {exporting ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Descargar todo (.docx)
+                </>
+              )}
+            </button>
+          )}
         </div>
         <p className="text-jwtextm text-sm ml-14">Seleccione un barrio para gestionar las direcciones</p>
       </div>

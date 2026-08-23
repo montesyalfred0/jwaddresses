@@ -47,3 +47,10 @@ export const authRateLimit = createRateLimit({
   message: 'Too many login attempts. Please try again in 15 minutes.',
   prefix: 'rl:auth:'
 });
+
+/** Límite para exportación de documentos: 5 descargas por IP cada 15 minutos (generación costosa y datos sensibles) */
+export const exportRateLimit = createRateLimit({
+  max: 5,
+  message: 'Límite de descargas alcanzado. Intente de nuevo en 15 minutos.',
+  prefix: 'rl:export:'
+});
