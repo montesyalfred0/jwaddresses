@@ -107,6 +107,13 @@ const tableBorders = {
 
 const cellMargins = { top: 110, bottom: 110, left: 150, right: 150 };
 
+/**
+ * Ancho útil de página en twips (DXA): A4 (11906) menos márgenes (1150 x 2).
+ * IMPORTANTE: los anchos deben ser DXA absolutos; los porcentajes generan un
+ * tblGrid inválido que colapsa las columnas a ~2mm y apila el texto en vertical.
+ */
+const PAGE_CONTENT_WIDTH = 11906 - 1150 * 2;
+
 const cellParagraph = (text, options = {}) =>
   new Paragraph({
     spacing: { before: 0, after: 0 },
@@ -121,7 +128,7 @@ const buildHeaderRow = (columns) =>
     children: columns.map(
       (col) =>
         new TableCell({
-          width: { size: col.width, type: WidthType.PERCENTAGE },
+          width: { size: col.width, type: WidthType.DXA },
           shading: { fill: C.primary, type: 'clear' },
           margins: cellMargins,
           children: [cellParagraph(col.header, { bold: true, color: 'FFFFFF' })],
@@ -138,7 +145,7 @@ const buildBodyRows = (addresses, columns) =>
         const value =
           ci === 0 ? addr.name : ci === 1 ? addr.family : addr.address;
         return new TableCell({
-          width: { size: col.width, type: WidthType.PERCENTAGE },
+          width: { size: col.width, type: WidthType.DXA },
           shading: { fill: i % 2 === 1 ? C.zebra : 'FFFFFF', type: 'clear' },
           margins: cellMargins,
           children: [
@@ -152,13 +159,15 @@ const buildBodyRows = (addresses, columns) =>
 /** Tabla de direcciones del barrio: Nombre · Familia · Dirección */
 const buildAddressTable = (addresses) => {
   const columns = [
-    { header: 'Nombre', width: 27 },
-    { header: 'Familia', width: 26 },
-    { header: 'Dirección', width: 47 },
+    { header: 'Nombre', width: 2650 },
+    { header: 'Familia', width: 2350 },
+    { header: 'Dirección', width: PAGE_CONTENT_WIDTH - 2650 - 2350 },
   ];
 
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    // columnWidths define el tblGrid real que Word usa con layout fijo
+    columnWidths: columns.map((col) => col.width),
+    width: { size: PAGE_CONTENT_WIDTH, type: WidthType.DXA },
     layout: TableLayoutType.FIXED,
     borders: tableBorders,
     rows: [buildHeaderRow(columns), ...buildBodyRows(addresses, columns)],
@@ -196,13 +205,12 @@ const buildDocHeader = (docTitle, grouped) => {
   ];
 };
 
-/** Encabezado de territorio con contador y línea divisoria */
+/** Encabezado de territorio con contador y línea divisoria (flujo continuo, sin saltos de página) */
 const buildTerritoryHeading = (territory, isFirst) => {
   const count = [...territory.neighborhoods.values()].reduce((sum, nb) => sum + nb.addresses.length, 0);
   return new Paragraph({
-    pageBreakBefore: !isFirst,
     keepNext: true,
-    spacing: { before: 0, after: 60 },
+    spacing: { before: isFirst ? 0 : 560, after: 60 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.accentLine, space: 6 } },
     children: [
       new TextRun({ text: territory.name, bold: true, size: 38, color: C.primary, font: FONT }),
@@ -216,21 +224,23 @@ const buildTerritoryHeading = (territory, isFirst) => {
   });
 };
 
-/** Encabezado de barrio con contador entre paréntesis */
-const buildNeighborhoodHeading = (neighborhood) =>
-  new Paragraph({
-    keepNext: true,
-    spacing: { before: 300, after: 120 },
+/**
+ * Encabezado de barrio. Los barrios sin direcciones se anotan en la misma línea
+ * para no ocupar espacio adicional en el documento.
+ */
+const buildNeighborhoodHeading = (neighborhood) => {
+  const isEmpty = neighborhood.addresses.length === 0;
+  return new Paragraph({
+    keepNext: !isEmpty,
+    spacing: { before: isEmpty ? 160 : 300, after: isEmpty ? 40 : 120 },
     children: [
       new TextRun({ text: neighborhood.name, bold: true, size: 27, color: C.mid, font: FONT }),
-      new TextRun({
-        text: `  (${neighborhood.addresses.length})`,
-        size: 19,
-        color: C.faint,
-        font: FONT,
-      }),
+      isEmpty
+        ? new TextRun({ text: '   · sin direcciones', italics: true, size: 20, color: C.faint, font: FONT })
+        : new TextRun({ text: `  (${neighborhood.addresses.length})`, size: 19, color: C.faint, font: FONT }),
     ],
   });
+};
 
 /** Construye el documento Word completo a partir de los datos agrupados */
 const buildDocument = (grouped, docTitle) => {
@@ -252,11 +262,6 @@ const buildDocument = (grouped, docTitle) => {
       children.push(buildNeighborhoodHeading(neighborhood));
 
       if (neighborhood.addresses.length === 0) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: 'Sin direcciones registradas.', italics: true, color: C.muted, font: FONT })],
-          })
-        );
         continue;
       }
 
